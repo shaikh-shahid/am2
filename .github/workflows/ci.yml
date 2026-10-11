@@ -98,9 +98,11 @@ jobs:
           for target in aarch64-apple-darwin x86_64-apple-darwin; do
             archive="dist/am2-v${version}-${target}.tar.gz"
             test -f "$archive"
-            tar -tzf "$archive" | grep -qx 'am2'
-            tar -tzf "$archive" | grep -qx 'am2-ghostty-bridge'
-            tar -tzf "$archive" | grep -qx 'am2-terminal-bridge'
+            listing="${archive}.contents"
+            tar -tzf "$archive" > "$listing"
+            grep -Fxq 'am2' "$listing"
+            grep -Fxq 'am2-ghostty-bridge' "$listing"
+            grep -Fxq 'am2-terminal-bridge' "$listing"
           done
           (cd dist && sha256sum *.tar.gz > SHA256SUMS)
       - name: Prepare curl installer
