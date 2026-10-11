@@ -1,4 +1,4 @@
-# AM2 proof of concept
+# AM2 - Unified Agent Dashboard
 
 AM2 is a terminal dashboard for **Codex, Claude, OpenCode, Pi, Gemini CLI, and Cursor Agent on macOS**. It discovers local CLI processes without Herdr. When Herdr is available, AM2 adds pane status, recent output, and precise pane navigation. AM2 can launch an agent in a new terminal surface; observation and inspection remain read-only.
 
