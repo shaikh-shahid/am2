@@ -1,0 +1,127 @@
+name: CI and release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-test:
+    name: macOS ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Check runner architecture
+        shell: bash
+        run: |
+          test "$(rustc -vV | awk '/^host:/ {print $2}')" = "${{ matrix.target }}"
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
+      - name: Tests
+        run: cargo test --locked
+      - name: Packaging test
+        run: bash tests/package_release.sh
+      - name: Installer test
+        run: bash tests/install.sh
+      - name: Check release tag matches Cargo version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(cargo metadata --locked --no-deps --format-version 1 | python3 -c 'import json,sys; print(next(p["version"] for p in json.load(sys.stdin)["packages"] if p["name"] == "am2"))')"
+          test "$RELEASE_TAG" = "v$version" || { echo "Tag $RELEASE_TAG does not match Cargo version $version" >&2; exit 1; }
+      - name: Build release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          AM2_RELEASE_REPO: https://github.com/${{ github.repository }}
+        run: cargo build --release --locked
+      - name: Package release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TARGET: ${{ matrix.target }}
+        run: bash scripts/package-release.sh target "${RELEASE_TAG#v}" "$RELEASE_TARGET" dist
+      - name: Upload release archive
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: dist
+          merge-multiple: true
+      - name: Verify assets and write checksums
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          for target in aarch64-apple-darwin x86_64-apple-darwin; do
+            archive="dist/am2-v${version}-${target}.tar.gz"
+            test -f "$archive"
+            tar -tzf "$archive" | grep -qx 'am2'
+            tar -tzf "$archive" | grep -qx 'am2-ghostty-bridge'
+            tar -tzf "$archive" | grep -qx 'am2-terminal-bridge'
+          done
+          (cd dist && sha256sum *.tar.gz > SHA256SUMS)
+      - name: Prepare curl installer
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          sed -e "s|@AM2_REPO@|${GITHUB_REPOSITORY}|g" \
+              -e "s|@AM2_TAG@|${RELEASE_TAG}|g" \
+              scripts/install.sh > dist/install.sh
+          sh -n dist/install.sh
+          if grep -q '@AM2_' dist/install.sh; then
+            echo 'Installer still contains a template placeholder' >&2
+            exit 1
+          fi
+      - name: Publish prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" dist/*.tar.gz dist/SHA256SUMS dist/install.sh \
+            --verify-tag --generate-notes --prerelease
