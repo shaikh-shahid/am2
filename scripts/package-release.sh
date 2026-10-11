@@ -35,13 +35,19 @@ find_helper() {
 
 ghostty_bridge="$(find_helper ghostty-bridge)"
 terminal_bridge="$(find_helper terminal-bridge)"
-repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
 cp "$target_dir/release/am2" "$staging/am2"
 cp "$ghostty_bridge" "$staging/am2-ghostty-bridge"
 cp "$terminal_bridge" "$staging/am2-terminal-bridge"
-cp "$repo_root/docs/release-install.md" "$staging/INSTALL.md"
+cat > "$staging/INSTALL.md" <<'EOF'
+# Install AM2
+
+Keep `am2`, `am2-ghostty-bridge`, and `am2-terminal-bridge` together.
+Copy all three files to a directory on PATH, such as `~/.local/bin`, then
+run `am2 doctor` in a normal terminal. The GitHub Release also provides an
+`install.sh` asset that automates the download, checksum check, and install.
+EOF
 chmod 755 "$staging/am2" "$staging/am2-ghostty-bridge" "$staging/am2-terminal-bridge"
 mkdir -p "$dist_dir"
 archive="$dist_dir/am2-v$version-$arch.tar.gz"

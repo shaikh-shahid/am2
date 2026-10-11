@@ -53,7 +53,8 @@ case ":$PATH:" in
     *":$install_dir:"*) echo 'Run: am2 doctor'; exit 0 ;;
 esac
 if [ -z "${AM2_INSTALL_DIR:-}" ] && [ "$install_dir" = "$HOME/.local/bin" ]; then
-    case "${SHELL##*/}" in
+    shell_name="${SHELL:-}"
+    case "${shell_name##*/}" in
         zsh) profile="$HOME/.zprofile" ;;
         bash) profile="$HOME/.bash_profile" ;;
         *) profile='' ;;
@@ -62,8 +63,10 @@ if [ -z "${AM2_INSTALL_DIR:-}" ] && [ "$install_dir" = "$HOME/.local/bin" ]; the
         path_line='export PATH="$HOME/.local/bin:$PATH"'
         if ! grep -Fq "$path_line" "$profile" 2>/dev/null; then
             printf '\n# AM2 command-line tools\n%s\n' "$path_line" >> "$profile"
+            echo "Added $install_dir to $profile. Open a new terminal, then run: am2 doctor"
+        else
+            echo "$install_dir is already configured in $profile. Open a new terminal, then run: am2 doctor"
         fi
-        echo "Added $install_dir to $profile. Open a new terminal, then run: am2 doctor"
         exit 0
     fi
 fi

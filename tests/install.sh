@@ -28,6 +28,20 @@ for executable in am2 am2-ghostty-bridge am2-terminal-bridge; do
 done
 test "$("$fixture/bin/am2")" = am2
 
+mkdir -p "$fixture/home"
+for _ in 1 2; do
+    HOME="$fixture/home" SHELL=/bin/zsh AM2_REPO=example/am2 AM2_TAG=v0.1.0 \
+    AM2_DOWNLOAD_BASE_URL="file://$release_dir" sh "$root/scripts/install.sh"
+done
+test -x "$fixture/home/.local/bin/am2"
+test "$(grep -c '# AM2 command-line tools' "$fixture/home/.zprofile")" -eq 1
+
+sed -e 's|@AM2_REPO@|example/am2|g' -e 's|@AM2_TAG@|v0.1.0|g' \
+    "$root/scripts/install.sh" > "$fixture/generated-install.sh"
+AM2_DOWNLOAD_BASE_URL="file://$release_dir" AM2_INSTALL_DIR="$fixture/generated-bin" \
+    sh "$fixture/generated-install.sh"
+test -x "$fixture/generated-bin/am2"
+
 printf 'tampered' >> "$release_dir/$archive"
 if AM2_REPO=example/am2 AM2_TAG=v0.1.0 \
     AM2_DOWNLOAD_BASE_URL="file://$release_dir" AM2_INSTALL_DIR="$fixture/bad-bin" \
