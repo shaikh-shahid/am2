@@ -340,6 +340,13 @@ fn parse_processes(ps: &str) -> Vec<Process> {
 
 fn node_entrypoint_kind(script: &str, resolved: Option<&str>) -> Option<AgentKind> {
     for known in [Some(script), resolved].into_iter().flatten() {
+        // Homebrew's public command is a symlink into gemini-cli's versioned
+        // Cellar directory. The symlink may not exist on the machine parsing
+        // a fixture (notably the other architecture's CI runner), so recognize
+        // the two standard Homebrew prefixes as well as the resolved target.
+        if matches!(known, "/opt/homebrew/bin/gemini" | "/usr/local/bin/gemini") {
+            return Some(AgentKind::Gemini);
+        }
         if (known.contains("/gemini-cli/") && known.ends_with("/gemini"))
             || (known.contains("/@google/gemini-cli/dist/") && known.ends_with("/index.js"))
         {
