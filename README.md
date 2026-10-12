@@ -2,9 +2,24 @@
 
 AM2 is a terminal dashboard for **Codex, Claude, OpenCode, Pi, Gemini CLI, and Cursor Agent on macOS**. It discovers local CLI processes without Herdr. When Herdr is available, AM2 adds pane status, recent output, and precise pane navigation. AM2 can launch an agent in a new terminal surface; observation and inspection remain read-only.
 
+### Install on macOS
+
+Install the latest beta from [GitHub Releases](https://github.com/shaikh-shahid/am2/releases) with:
+
+```sh
+curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.1/install.sh | sh
+```
+
+The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. Downloads may take a little while and currently show limited progress. If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. Run `am2 doctor` to verify the installation. Set `AM2_INSTALL_DIR` to choose another absolute install directory. For manual installation, download the archive for your Mac from [the v0.1.1 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
+
 ## Run
 
 Start AM2 from any macOS terminal:
+
+```sh
+am2
+```
+OR 
 
 ```sh
 cargo run
@@ -18,16 +33,6 @@ cargo run
 ```
 
 `am2 help` lists commands and options; `am2 --version` prints the installed version. `am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. `am2 update` points release builds to GitHub Releases and explains the source reinstall command; it does not modify the installation.
-
-### Install on macOS
-
-Install the latest beta from [GitHub Releases](https://github.com/shaikh-shahid/am2/releases) with:
-
-```sh
-curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.1/install.sh | sh
-```
-
-The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. Downloads may take a little while and currently show limited progress. If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. Run `am2 doctor` to verify the installation. Set `AM2_INSTALL_DIR` to choose another absolute install directory. For manual installation, download the archive for your Mac from [the v0.1.1 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
 
 ### GitHub Releases
 
