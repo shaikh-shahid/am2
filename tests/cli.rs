@@ -47,13 +47,66 @@ fn config_init_creates_file_and_does_not_overwrite_it() {
 }
 
 #[test]
-fn update_explains_the_current_release_channel_without_installing() {
-    let output = am2(&["update"]);
+fn update_help_documents_check_and_noninteractive_install_flags() {
+    let output = am2(&["update", "--help"]);
     assert!(output.status.success());
     let text = String::from_utf8_lossy(&output.stdout);
-    assert!(text.contains(env!("CARGO_PKG_VERSION")));
-    assert!(text.contains("GitHub Releases"));
-    assert!(text.contains("cargo run --release --locked"));
+    assert!(text.contains("--check"));
+    assert!(text.contains("--yes"));
+}
+
+#[test]
+fn update_check_reports_latest_release_without_installing() {
+    let path = std::env::temp_dir().join(format!(
+        "am2-releases-{}-{}.json",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let releases = format!(
+        r#"[{{"tag_name":"v{}","draft":false,"assets":[]}}]"#,
+        env!("CARGO_PKG_VERSION")
+    );
+    std::fs::write(&path, releases).unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_am2"))
+        .args(["update", "--check"])
+        .env("AM2_UPDATE_API_URL", format!("file://{}", path.display()))
+        .output()
+        .unwrap();
+    std::fs::remove_file(path).unwrap();
+
+    assert!(output.status.success());
+    assert!(String::from_utf8_lossy(&output.stdout).contains("is up to date"));
+}
+
+#[test]
+fn update_check_reports_a_newer_prerelease_without_installing() {
+    let path = std::env::temp_dir().join(format!(
+        "am2-new-release-{}-{}.json",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    std::fs::write(
+        &path,
+        r#"[{"tag_name":"v99.0.0-beta.1","draft":false,"assets":[]}]"#,
+    )
+    .unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_am2"))
+        .args(["update", "--check"])
+        .env("AM2_UPDATE_API_URL", format!("file://{}", path.display()))
+        .output()
+        .unwrap();
+    std::fs::remove_file(path).unwrap();
+
+    assert!(output.status.success());
+    let text = String::from_utf8_lossy(&output.stdout);
+    assert!(text.contains("99.0.0-beta.1 is available"));
+    assert!(!text.contains("Install AM2"));
 }
 
 #[test]

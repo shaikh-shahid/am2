@@ -29,8 +29,15 @@ enum Commands {
     },
     /// Check local tools, data path, and live discovery.
     Doctor,
-    /// Show the installed version and beta update instructions.
-    Update,
+    /// Check for and install a newer GitHub release.
+    Update {
+        /// Check for updates without installing them.
+        #[arg(long, conflicts_with = "yes")]
+        check: bool,
+        /// Install without asking for confirmation.
+        #[arg(long)]
+        yes: bool,
+    },
     /// Show or create the user preferences file.
     Config {
         #[command(subcommand)]
@@ -90,16 +97,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
         Some(Commands::Doctor) => doctor(),
-        Some(Commands::Update) => {
-            println!("AM2 {}", env!("CARGO_PKG_VERSION"));
-            if let Some(repository) = option_env!("AM2_RELEASE_REPO") {
-                println!("Download a newer macOS archive from {repository}/releases");
-                println!("Install all three executables from the archive together.");
-            } else {
-                println!("Check this project's GitHub Releases page for a newer macOS archive.");
-            }
-            println!("Source checkout: cargo run --release --locked");
-            println!("AM2 does not update itself.");
+        Some(Commands::Update { check, yes }) => {
+            am2::updater::run(check, yes).map_err(std::io::Error::other)?;
         }
         Some(Commands::Config { action }) => {
             let path = AppConfig::default_path()?;

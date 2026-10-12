@@ -32,7 +32,7 @@ cargo run -- doctor
 cargo run
 ```
 
-`am2 help` lists commands and options; `am2 --version` prints the installed version. `am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. `am2 update` points release builds to GitHub Releases and explains the source reinstall command; it does not modify the installation.
+`am2 help` lists commands and options; `am2 --version` prints the installed version. `am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. `am2 update` checks GitHub Releases and asks before installing a newer macOS build. Use `am2 update --check` to check without installing, or `am2 update --yes` for a noninteractive update. The updater verifies the release archive against `SHA256SUMS` and replaces `am2` and both terminal helpers in the installed binary directory. Source builds can check releases but must be updated by installing a release or rebuilding from source.
 
 ### GitHub Releases
 

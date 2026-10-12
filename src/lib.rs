@@ -14,3 +14,4 @@ pub mod search;
 pub mod store;
 pub mod terminals;
 pub mod ui;
+pub mod updater;
