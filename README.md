@@ -19,17 +19,19 @@ cargo run
 
 `am2 help` lists commands and options; `am2 --version` prints the installed version. `am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. `am2 update` points release builds to GitHub Releases and explains the source reinstall command; it does not modify the installation.
 
-### GitHub Releases
+### Install on macOS
 
-CI runs format, Clippy, tests, and packaging and installer checks on Apple Silicon and Intel macOS runners for every push and pull request. A `v` tag matching the version in `Cargo.toml` builds both release archives, writes SHA-256 checksums, and publishes a GitHub prerelease with a tag-specific `install.sh`. For example, version `0.1.0` uses tag `v0.1.0`.
-
-After the `v0.1.0` release is published, install it with:
+Install the latest beta from [GitHub Releases](https://github.com/shaikh-shahid/am2/releases) with:
 
 ```sh
-curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.0/install.sh | sh
+curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.1/install.sh | sh
 ```
 
-The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. If that directory is not on `PATH`, it adds one line to `~/.zprofile` or `~/.bash_profile` for the next login shell. Set `AM2_INSTALL_DIR` to choose another absolute directory. Run `am2 doctor` in a new terminal after installation. The archives also contain `INSTALL.md` for manual installation.
+The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. Downloads may take a little while and currently show limited progress. If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. Run `am2 doctor` to verify the installation. Set `AM2_INSTALL_DIR` to choose another absolute install directory. For manual installation, download the archive for your Mac from [the v0.1.1 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
+
+### GitHub Releases
+
+CI runs formatting, Clippy, tests, packaging, and installer checks on Apple Silicon and Intel macOS runners for every push and pull request. Pushing a `v` tag that matches the version in `Cargo.toml` builds both release archives, writes SHA-256 checksums, and publishes a GitHub prerelease with a tag-specific `install.sh`. For example, version `0.1.1` uses tag `v0.1.1`.
 
 ### Configuration
 
