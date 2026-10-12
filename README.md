@@ -7,7 +7,7 @@ AM2 is a terminal dashboard for **Codex, Claude, OpenCode, Pi, Gemini CLI, and C
 Install the latest beta from [GitHub Releases](https://github.com/shaikh-shahid/am2/releases) with:
 
 ```sh
-curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.1/install.sh | sh
+curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.2/install.sh | sh
 ```
 
 The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. Downloads may take a little while and currently show limited progress. If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. Run `am2 doctor` to verify the installation. Set `AM2_INSTALL_DIR` to choose another absolute install directory. For manual installation, download the archive for your Mac from [the v0.1.1 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
