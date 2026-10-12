@@ -1808,10 +1808,34 @@ fn location_label(agent: &AgentObservation, saved_link: Option<&str>) -> String 
             .map(|target| format!("Herdr/{}", target.provider.label()))
             .unwrap_or_else(|| "Herdr".into());
         let tab = metadata(agent, "Tab");
-        return match tab {
-            Some(tab) => format!("{host} · {tab}/{}", agent.runtime.target),
-            None => format!("{host} · {}", agent.runtime.target),
-        };
+        let workspace = metadata(agent, "Workspace")
+            .and_then(|id| herdr_number(id, 'w'))
+            .or_else(|| {
+                tab.and_then(|id| id.split(':').next())
+                    .and_then(|id| herdr_number(id, 'w'))
+            })
+            .map(|number| format!("Workspace {number}"))
+            .or_else(|| metadata(agent, "Workspace").map(str::to_owned));
+        let tab_label = tab
+            .and_then(|id| id.rsplit(':').next())
+            .and_then(|id| herdr_number(id, 't'))
+            .map(|number| format!("Tab {number}"))
+            .or_else(|| tab.map(str::to_owned));
+        let pane_label = agent
+            .runtime
+            .target
+            .rsplit(':')
+            .next()
+            .and_then(|id| herdr_number(id, 'p'))
+            .map(|number| format!("Pane {number}"))
+            .unwrap_or_else(|| agent.runtime.target.clone());
+        let parts = workspace
+            .into_iter()
+            .chain(tab_label)
+            .chain(Some(pane_label))
+            .collect::<Vec<_>>()
+            .join(" / ");
+        return format!("{host} · {parts}");
     }
     let tty = metadata(agent, "TTY");
     if let Some(provider) = saved_link.and_then(|link| parse_target(link).ok()) {
@@ -1835,10 +1859,9 @@ fn compact_location_label(agent: &AgentObservation, saved_link: Option<&str>) ->
             Provider::ITerm2 => "iTerm2",
         });
     if agent.runtime.provider == "Herdr" {
-        let pane = agent.runtime.target.rsplit(':').next().unwrap_or("?");
         return match provider {
-            Some(provider) => format!("H/{provider}:{pane}"),
-            None => format!("Herdr:{pane}"),
+            Some(provider) => provider.into(),
+            None => "Herdr".into(),
         };
     }
     let tty = metadata(agent, "TTY").map(|tty| tty.strip_prefix("ttys").unwrap_or(tty));
@@ -1848,6 +1871,11 @@ fn compact_location_label(agent: &AgentObservation, saved_link: Option<&str>) ->
         (None, Some(tty)) => format!("TTY:{tty}"),
         (None, None) => "App unknown".into(),
     }
+}
+
+fn herdr_number(id: &str, prefix: char) -> Option<&str> {
+    id.strip_prefix(prefix)
+        .filter(|number| !number.is_empty() && number.chars().all(|ch| ch.is_ascii_digit()))
 }
 
 fn render(frame: &mut Frame, state: &DashboardState, now: i64) {
@@ -1866,7 +1894,8 @@ fn render(frame: &mut Frame, state: &DashboardState, now: i64) {
     );
     for (status, label) in [
         (AgentState::Working, "working"),
-        (AgentState::Waiting, "waiting"),
+        (AgentState::Idle, "idle"),
+        (AgentState::Waiting, "needs input"),
         (AgentState::Finished, "finished"),
         (AgentState::Failed, "failed"),
         (AgentState::Unknown, "unknown"),
@@ -2192,10 +2221,19 @@ fn render_terminal_picker(frame: &mut Frame, picker: &TerminalPicker, area: rata
 fn state_symbol(state: AgentState) -> &'static str {
     match state {
         AgentState::Working => "●",
+        AgentState::Idle => "○",
         AgentState::Waiting => "◉",
         AgentState::Finished => "✓",
         AgentState::Failed => "✕",
         AgentState::Unknown => "?",
+    }
+}
+
+fn state_cell_label(state: AgentState) -> String {
+    if state == AgentState::Waiting {
+        state.compact_display_label().into()
+    } else {
+        format!("{} {}", state_symbol(state), state.display_label())
     }
 }
 
@@ -2209,13 +2247,12 @@ fn render_compact_agents(
         let agent = &view.observation;
         let evidence = derive_activity(view, &state.history);
         ListItem::new(format!(
-            "{} {} · {} / {}\n  {} {} · {} · {}",
+            "{} {} · {} / {}\n  {} · {} · {}",
             agent_icon(agent.kind),
             agent.kind,
             state.session_label(agent),
             agent.project,
-            state_symbol(agent.state),
-            agent.state.label(),
+            state_cell_label(agent.state),
             evidence.summary,
             elapsed_label(now, evidence.observed_at),
         ))
@@ -2250,7 +2287,7 @@ fn render_dashboard(
     area: ratatui::layout::Rect,
 ) {
     let sections = Layout::vertical([Constraint::Min(6), Constraint::Length(7)]).split(area);
-    let wide = area.width >= 112;
+    let wide = area.width >= 132;
     let rows = state.visible_agents().into_iter().map(|view| {
         let observation = &view.observation;
         let evidence = derive_activity(view, &state.history);
@@ -2268,12 +2305,7 @@ fn render_dashboard(
         let mut cells = vec![
             Cell::from(agent_line),
             Cell::from(observation.project.clone()),
-            Cell::from(format!(
-                "{} {}",
-                state_symbol(observation.state),
-                observation.state.label()
-            ))
-            .style(state_style(observation.state)),
+            Cell::from(state_cell_label(observation.state)).style(state_style(observation.state)),
             Cell::from(evidence.summary),
         ];
         if wide {
@@ -2295,19 +2327,27 @@ fn render_dashboard(
     );
     let widths = if wide {
         vec![
-            Constraint::Length(26),
-            Constraint::Length(17),
-            Constraint::Length(11),
+            Constraint::Length(24),
+            Constraint::Length(16),
+            Constraint::Length(13),
             Constraint::Min(16),
-            Constraint::Length(27),
+            Constraint::Length(48),
             Constraint::Length(5),
+        ]
+    } else if area.width >= 100 {
+        vec![
+            Constraint::Length(21),
+            Constraint::Length(11),
+            Constraint::Length(13),
+            Constraint::Length(21),
+            Constraint::Min(15),
         ]
     } else {
         vec![
-            Constraint::Length(22),
-            Constraint::Length(12),
-            Constraint::Length(10),
-            Constraint::Min(15),
+            Constraint::Length(21),
+            Constraint::Length(11),
+            Constraint::Length(13),
+            Constraint::Min(13),
             Constraint::Length(15),
         ]
     };
@@ -2317,11 +2357,17 @@ fn render_dashboard(
             "PROJECT",
             "STATE",
             "ACTIVITY",
-            "WHERE",
+            "LOCATION",
             "AGE",
         ]
     } else {
-        vec!["AGENT · SESSION", "PROJECT", "STATE", "ACTIVITY", "WHERE"]
+        vec![
+            "AGENT · SESSION",
+            "PROJECT",
+            "STATE",
+            "ACTIVITY",
+            "LOCATION",
+        ]
     };
     let table = Table::new(rows, widths)
         .header(
@@ -2372,7 +2418,7 @@ fn render_dashboard(
                 agent.project,
                 state.session_label(agent),
                 state_symbol(agent.state),
-                agent.state.label(),
+                agent.state.display_label(),
                 evidence.summary,
                 evidence.activity_source,
                 elapsed_label(now, evidence.observed_at),
@@ -2415,7 +2461,7 @@ fn render_inspection(
         ));
         metadata.push(format!(
             "State       {} · {}",
-            agent.state.label(),
+            agent.state.display_label(),
             evidence.state_source
         ));
         metadata.push(format!("Activity    {}", evidence.summary));
@@ -2810,7 +2856,7 @@ fn render_project_inspection(
             "{} {} · {} · {}",
             agent_icon(agent.kind),
             agent.kind,
-            agent.state.label(),
+            agent.state.display_label(),
             agent.activity
         ));
     }
@@ -2862,6 +2908,7 @@ fn render_project_inspection(
 fn state_style(state: AgentState) -> Style {
     let color = match state {
         AgentState::Working => Color::Green,
+        AgentState::Idle => Color::Gray,
         AgentState::Waiting => Color::Yellow,
         AgentState::Finished => Color::Cyan,
         AgentState::Failed => Color::Red,
@@ -3239,6 +3286,34 @@ mod render_tests {
     }
 
     #[test]
+    fn waiting_state_is_visible_as_needs_input_in_dashboard() {
+        let mut waiting = display_agent();
+        waiting.observation.state = AgentState::Waiting;
+        waiting.activity = "idle".into();
+        let state = DashboardState::new(vec![waiting]);
+        let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state, 100)).unwrap();
+        let text = screen_text(&terminal);
+        assert!(text.contains("1 needs input"));
+        assert!(text.contains("needs input"));
+    }
+
+    #[test]
+    fn idle_state_is_not_counted_as_needs_input_in_dashboard() {
+        let mut idle = display_agent();
+        idle.observation.state = AgentState::Idle;
+        idle.activity = crate::activity::summarize(AgentState::Idle, "");
+        let state = DashboardState::new(vec![idle]);
+        let mut terminal = Terminal::new(TestBackend::new(100, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state, 100)).unwrap();
+        let text = screen_text(&terminal);
+        assert!(text.contains("1 idle"));
+        assert!(text.contains("○ idle"));
+        assert!(text.contains("—"));
+        assert!(!text.contains("needs input"));
+    }
+
+    #[test]
     fn dashboard_search_renders_only_matching_agents() {
         let mut pi = display_agent();
         pi.observation.id = "pi".into();
@@ -3471,7 +3546,7 @@ mod render_tests {
         let text = screen_text(&terminal);
         assert!(text.contains("#abcd1111"));
         assert!(text.contains("#efgh2222"));
-        assert!(text.contains("WHERE"));
+        assert!(text.contains("LOCATION"));
         assert!(text.contains("Herdr"));
     }
 
@@ -3491,15 +3566,18 @@ mod render_tests {
     fn herdr_location_includes_host_when_linked() {
         let mut agent = display_agent().observation;
         agent.runtime.fields.push(("Tab".into(), "w1:t1".into()));
-        assert_eq!(location_label(&agent, None), "Herdr · w1:t1/w1:p1");
+        assert_eq!(
+            location_label(&agent, None),
+            "Herdr · Workspace 1 / Tab 1 / Pane 1"
+        );
         assert_eq!(
             location_label(&agent, Some("ghostty:123:window-1")),
-            "Herdr/Ghostty · w1:t1/w1:p1"
+            "Herdr/Ghostty · Workspace 1 / Tab 1 / Pane 1"
         );
     }
 
     #[test]
-    fn narrow_dashboard_keeps_each_agent_on_one_row_with_where_column() {
+    fn narrow_dashboard_keeps_each_agent_on_one_row_with_location_column() {
         let state = DashboardState::new(vec![display_agent()]);
         let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
         terminal.draw(|frame| render(frame, &state, 100)).unwrap();
@@ -3510,9 +3588,41 @@ mod render_tests {
                     .collect::<String>()
             })
             .collect::<Vec<_>>();
-        assert!(lines.iter().any(|line| line.contains("WHERE")));
+        assert!(lines.iter().any(|line| line.contains("LOCATION")));
         assert!(lines
             .iter()
             .any(|line| line.contains("Codex") && line.contains("Herdr")));
+    }
+
+    #[test]
+    fn medium_dashboard_does_not_let_activity_push_location_to_the_edge() {
+        let state = DashboardState::new(vec![display_agent()]);
+        let mut terminal = Terminal::new(TestBackend::new(120, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state, 100)).unwrap();
+        let text = screen_text(&terminal);
+        let activity = text.find("ACTIVITY").unwrap();
+        let location = text.find("LOCATION").unwrap();
+        assert!(
+            location - activity < 36,
+            "headers too far apart: {location} - {activity}"
+        );
+    }
+
+    #[test]
+    fn wide_dashboard_explains_herdr_workspace_tab_and_pane_ids() {
+        let mut agent = display_agent();
+        agent
+            .observation
+            .runtime
+            .fields
+            .push(("Tab".into(), "w1:t1".into()));
+        let state = DashboardState::new(vec![agent]);
+        let mut terminal = Terminal::new(TestBackend::new(132, 24)).unwrap();
+        terminal.draw(|frame| render(frame, &state, 100)).unwrap();
+        let text = screen_text(&terminal);
+        assert!(
+            text.contains("Herdr · Workspace 1 / Tab 1 / Pane 1"),
+            "rendered dashboard:\n{text}"
+        );
     }
 }

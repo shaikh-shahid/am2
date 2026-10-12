@@ -420,7 +420,8 @@ pub fn observations_from_json(
             .to_owned();
         let state = match pane.status.as_str() {
             "working" => AgentState::Working,
-            "idle" | "blocked" => AgentState::Waiting,
+            "idle" => AgentState::Idle,
+            "blocked" => AgentState::Waiting,
             "done" => AgentState::Finished,
             "failed" => AgentState::Failed,
             _ => AgentState::Unknown,

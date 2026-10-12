@@ -34,7 +34,15 @@ fn verified_agents_become_runtime_neutral_observations() {
         .any(|(key, value)| key == "Workspace" && value == "w1"));
     assert_eq!(observations[1].kind, AgentKind::Claude);
     assert_eq!(observations[1].id, "herdr:term_b:43");
-    assert_eq!(observations[1].state, AgentState::Waiting);
+    assert_eq!(observations[1].state, AgentState::Idle);
+}
+
+#[test]
+fn herdr_blocked_status_means_needs_input() {
+    let snapshot = r#"{"result":{"snapshot":{"panes":[{"pane_id":"w1:p1","tab_id":"w1:t1","workspace_id":"w1","agent":"codex","agent_status":"blocked","cwd":"/Projects/am2"}]}}}"#;
+    let processes = HashMap::from([("w1:p1".into(), r#"{"result":{"process_info":{"foreground_processes":[{"pid":51,"argv0":"codex","argv":["codex"],"cwd":"/Projects/am2"}]}}}"#.into())]);
+    let observations = observations_from_json(snapshot, &processes, &HashMap::new()).unwrap();
+    assert_eq!(observations[0].state, AgentState::Waiting);
 }
 
 #[test]

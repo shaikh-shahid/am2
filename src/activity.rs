@@ -20,7 +20,7 @@ pub fn summarize(state: AgentState, output: &str) -> String {
     let permission_window = match state {
         AgentState::Waiting => 3,
         AgentState::Working => 1,
-        AgentState::Finished | AgentState::Failed | AgentState::Unknown => 0,
+        AgentState::Idle | AgentState::Finished | AgentState::Failed | AgentState::Unknown => 0,
     };
     if lines.iter().rev().take(permission_window).any(|line| {
         let lower = line.to_ascii_lowercase();
@@ -49,7 +49,8 @@ pub fn summarize(state: AgentState, output: &str) -> String {
     }
 
     match state {
-        AgentState::Waiting => return "waiting for input".into(),
+        AgentState::Idle => return "—".into(),
+        AgentState::Waiting => return "idle".into(),
         AgentState::Finished => return "finished".into(),
         AgentState::Failed => return "failed".into(),
         AgentState::Unknown if lines.is_empty() => return "activity unknown".into(),
@@ -91,13 +92,17 @@ pub fn summarize(state: AgentState, output: &str) -> String {
         }
     }
 
-    lines
-        .last()
-        .map(|line| clip(line, 80))
-        .unwrap_or_else(|| match state {
-            AgentState::Working => "working".into(),
-            _ => "activity unknown".into(),
-        })
+    if let Some(line) = lines.last() {
+        if state == AgentState::Working && line.eq_ignore_ascii_case("working") {
+            return "no recent output".into();
+        }
+        return clip(line, 80);
+    }
+
+    match state {
+        AgentState::Working => "no recent output".into(),
+        _ => "activity unknown".into(),
+    }
 }
 
 fn edit_path(line: &str) -> Option<&str> {

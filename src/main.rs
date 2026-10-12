@@ -61,7 +61,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .map(|agent| {
                         serde_json::json!({
                             "agent": agent.kind.to_string(), "project": agent.project,
-                            "state": agent.state.label(), "pid": agent.pid,
+                            "state": agent.state.label(),
+                            "state_label": agent.state.display_label(), "pid": agent.pid,
                             "cwd": agent.cwd, "source": agent.runtime.provider,
                             "target": agent.runtime.target,
                         })
@@ -72,15 +73,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 println!("No running coding agents found.");
             } else {
                 println!(
-                    "{:<10} {:<18} {:<10} {:<8} {:<8} CWD",
+                    "{:<10} {:<18} {:<18} {:<8} {:<8} CWD",
                     "AGENT", "PROJECT", "STATE", "PID", "SOURCE"
                 );
                 for agent in agents {
                     println!(
-                        "{:<10} {:<18} {:<10} {:<8} {:<8} {}",
+                        "{:<10} {:<18} {:<18} {:<8} {:<8} {}",
                         agent.kind,
                         agent.project,
-                        agent.state.label(),
+                        agent.state.display_label(),
                         agent.pid,
                         agent.runtime.provider,
                         agent.cwd

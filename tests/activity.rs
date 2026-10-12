@@ -19,20 +19,36 @@ fn working_commands_become_short_activity_labels() {
 
 #[test]
 fn waiting_and_completion_are_not_described_as_still_running() {
+    assert_eq!(AgentState::Waiting.display_label(), "waiting for input");
     assert_eq!(
         summarize(AgentState::Waiting, "Approve this command? (y/n)"),
         "permission requested"
     );
-    assert_eq!(
-        summarize(AgentState::Waiting, "cargo test"),
-        "waiting for input"
-    );
+    assert_eq!(summarize(AgentState::Waiting, "cargo test"), "idle");
     assert_eq!(
         summarize(
             AgentState::Finished,
             "cargo test\ntest result: ok. 3 passed"
         ),
         "tests passed"
+    );
+}
+
+#[test]
+fn idle_is_distinct_from_needs_input() {
+    assert_eq!(AgentState::Idle.label(), "idle");
+    assert_eq!(AgentState::Idle.display_label(), "idle");
+    assert_eq!(AgentState::Idle.compact_display_label(), "idle");
+    assert_eq!(summarize(AgentState::Idle, "previous command output"), "—");
+}
+
+#[test]
+fn working_state_without_recent_output_does_not_repeat_state_as_activity() {
+    assert_eq!(summarize(AgentState::Working, ""), "no recent output");
+    assert_eq!(summarize(AgentState::Working, "\n│\n"), "no recent output");
+    assert_eq!(
+        summarize(AgentState::Working, "working"),
+        "no recent output"
     );
 }
 

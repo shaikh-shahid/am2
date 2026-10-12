@@ -406,7 +406,8 @@ fn observations_from_candidates(
                 .to_owned();
             let state = match session.and_then(|session| session.status.as_deref()) {
                 Some("working") => AgentState::Working,
-                Some("idle" | "waiting" | "blocked") => AgentState::Waiting,
+                Some("idle") => AgentState::Idle,
+                Some("waiting" | "blocked") => AgentState::Waiting,
                 Some("done" | "finished") => AgentState::Finished,
                 Some("failed" | "error") => AgentState::Failed,
                 _ => AgentState::Unknown,

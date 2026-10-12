@@ -61,6 +61,21 @@ fn claude_inventory_enriches_exact_live_pid() {
 }
 
 #[test]
+fn claude_inventory_idle_and_blocked_statuses_stay_distinct() {
+    let ps = " 16 ttys006 Thu Oct  8 10:00:06 2026 claude --resume session-abc\n";
+    let idle_json = r#"[{"pid":16,"cwd":"/Projects/am2","sessionId":"session-abc","status":"idle","kind":"interactive"}]"#;
+    let blocked_json = r#"[{"pid":16,"cwd":"/Projects/am2","sessionId":"session-abc","status":"blocked","kind":"interactive"}]"#;
+    assert_eq!(
+        observations_from_processes(ps, &HashMap::new(), Some(idle_json))[0].state,
+        AgentState::Idle
+    );
+    assert_eq!(
+        observations_from_processes(ps, &HashMap::new(), Some(blocked_json))[0].state,
+        AgentState::Waiting
+    );
+}
+
+#[test]
 fn detached_claude_inventory_session_is_not_a_terminal_agent() {
     let ps = " 16 ?? Thu Oct  8 10:00:06 2026 claude --resume abc\n";
     let json = r#"[{"pid":16,"cwd":"/Projects/doceasy-backend-node","sessionId":"session-vscode","status":"idle","kind":"interactive"}]"#;

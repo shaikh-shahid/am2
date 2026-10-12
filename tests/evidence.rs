@@ -100,3 +100,27 @@ fn exact_saved_session_enriches_herdr_row_when_pane_output_is_unavailable() {
     assert_eq!(evidence.state_source, "Herdr reported status");
     assert!(evidence.recorded);
 }
+
+#[test]
+fn waiting_live_state_is_not_overridden_by_saved_history() {
+    let mut view = agent(AgentKind::Claude, "Herdr", Some("session-1"));
+    view.observation.state = AgentState::Waiting;
+    view.activity = "idle".into();
+    let evidence = derive_activity(&view, &history("session-1", AgentKind::Claude));
+    assert_eq!(evidence.summary, "idle");
+    assert_eq!(evidence.activity_source, "Herdr status only");
+    assert_eq!(evidence.observed_at, None);
+    assert!(!evidence.recorded);
+}
+
+#[test]
+fn idle_live_state_is_not_overridden_by_saved_history() {
+    let mut view = agent(AgentKind::Claude, "Herdr", Some("session-1"));
+    view.observation.state = AgentState::Idle;
+    view.activity = "idle".into();
+    let evidence = derive_activity(&view, &history("session-1", AgentKind::Claude));
+    assert_eq!(evidence.summary, "idle");
+    assert_eq!(evidence.activity_source, "Herdr status only");
+    assert_eq!(evidence.observed_at, None);
+    assert!(!evidence.recorded);
+}

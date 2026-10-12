@@ -53,6 +53,7 @@ impl AgentKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AgentState {
     Working,
+    Idle,
     Waiting,
     Finished,
     Failed,
@@ -63,10 +64,25 @@ impl AgentState {
     pub fn label(self) -> &'static str {
         match self {
             Self::Working => "working",
+            Self::Idle => "idle",
             Self::Waiting => "waiting",
             Self::Finished => "finished",
             Self::Failed => "failed",
             Self::Unknown => "unknown",
+        }
+    }
+
+    pub fn display_label(self) -> &'static str {
+        match self {
+            Self::Waiting => "waiting for input",
+            _ => self.label(),
+        }
+    }
+
+    pub fn compact_display_label(self) -> &'static str {
+        match self {
+            Self::Waiting => "needs input",
+            _ => self.display_label(),
         }
     }
 }

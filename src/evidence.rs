@@ -47,12 +47,20 @@ pub fn derive_activity(view: &AgentView, history: &HistoryInventory) -> Activity
         .iter()
         .find(|(key, _)| key == "Session ID")
         .map(|(_, id)| id.as_str());
-    if let Some(session) = session_id.and_then(|id| {
-        history
-            .sessions
-            .iter()
-            .find(|session| session.kind == agent.kind && session.id == id)
-    }) {
+    let recorded_session = if matches!(
+        agent.state,
+        crate::domain::AgentState::Idle | crate::domain::AgentState::Waiting
+    ) {
+        None
+    } else {
+        session_id.and_then(|id| {
+            history
+                .sessions
+                .iter()
+                .find(|session| session.kind == agent.kind && session.id == id)
+        })
+    };
+    if let Some(session) = recorded_session {
         if let Some(event) = session
             .events
             .iter()
