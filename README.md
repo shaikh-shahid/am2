@@ -1,4 +1,4 @@
-# AM2 - Unified Agent Dashboard
+# AM2 - Unified Terminal First Agents Dashboard
 
 AM2 is a terminal dashboard for **Codex, Claude, OpenCode, Pi, Gemini CLI, and Cursor Agent on macOS**. It discovers local CLI processes without Herdr. When Herdr is available, AM2 adds pane status, recent output, and precise pane navigation. AM2 can launch an agent in a new terminal surface; observation and inspection remain read-only.
 
@@ -10,7 +10,15 @@ Install the latest beta from [GitHub Releases](https://github.com/shaikh-shahid/
 curl -fsSL https://github.com/shaikh-shahid/am2/releases/download/v0.1.2/install.sh | sh
 ```
 
-The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. Downloads may take a little while and currently show limited progress. If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. Run `am2 doctor` to verify the installation. Set `AM2_INSTALL_DIR` to choose another absolute install directory. For manual installation, download the archive for your Mac from [the v0.1.1 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
+The installer selects the Mac architecture, verifies the archive against `SHA256SUMS`, and installs `am2` with its two terminal helpers in `~/.local/bin`. 
+
+If `~/.local/bin` is not on `PATH`, the installer adds it to `~/.zprofile` or `~/.bash_profile`; open a new terminal afterward. 
+
+Run `am2 doctor` to verify the installation. 
+
+Set `AM2_INSTALL_DIR` to choose another absolute install directory. 
+
+For manual installation, download the archive for your Mac from [the v0.1.3 release](https://github.com/shaikh-shahid/am2/releases/tag/v0.1.1) and follow its `INSTALL.md`.
 
 ## Run
 
@@ -24,6 +32,9 @@ OR
 ```sh
 cargo run
 ```
+You should see am2 listing all agents running in different terminals or panes.
+
+![am2](imgs/am2-home.png)
 
 For development from this checkout:
 
@@ -32,7 +43,15 @@ cargo run -- doctor
 cargo run
 ```
 
-`am2 help` lists commands and options; `am2 --version` prints the installed version. `am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. `am2 update` checks GitHub Releases and asks before installing a newer macOS build. Use `am2 update --check` to check without installing, or `am2 update --yes` for a noninteractive update. The updater verifies the release archive against `SHA256SUMS` and replaces `am2` and both terminal helpers in the installed binary directory. Source builds can check releases but must be updated by installing a release or rebuilding from source.
+`am2 help` lists commands and options; 
+
+`am2 --version` prints the installed version. 
+
+`am2 doctor` checks required process tools, optional agent/Herdr CLIs, the AM2 data store, and timed Herdr/macOS inventory probes. It reports each source separately so an unavailable Herdr server does not hide a working local process scan. 
+
+`am2 update` checks GitHub Releases and asks before installing a newer macOS build. Use `am2 update --check` to check without installing, or `am2 update --yes` for a noninteractive update. The updater verifies the release archive against `SHA256SUMS` and replaces `am2` and both terminal helpers in the installed binary directory. 
+
+Source builds can check releases but must be updated by installing a release or rebuilding from source.
 
 ### GitHub Releases
 
@@ -52,7 +71,15 @@ default_terminal = "auto" # auto, herdr, ghostty, terminal, iterm2
 
 `auto` preserves the current choice: Herdr when AM2 has a pane anchor, otherwise Ghostty. An explicit `herdr` preference falls back to Ghostty when no Herdr anchor is available. The launch form still lets you choose another destination before starting an agent. Invalid config values stop the dashboard with a path-specific error; `am2 doctor` reports the config status. Session labels and terminal links remain in AM2's SQLite data store.
 
-The dashboard starts scanning in the background, polls every five seconds without blocking keyboard input, and redraws when input or new data arrives. Herdr pane process queries run in bounded parallel batches, while macOS groups Codex open-file queries into one `lsof` call. Use `am2 doctor` to measure both inventory sources on your machine. On terminals at least 100 columns wide, Enter opens details beside the agent list; on narrower terminals, details use the full width. The Agents list groups by project and agent type, then sorts by session identity; state changes do not move a row. It shows a short session ID (or pane/PID fallback) and WHERE. WHERE names the Herdr pane and linked host app when available, or the linked terminal app for a standalone agent. An unlinked local process shows its TTY with `app unknown`. On narrow terminals, WHERE uses a compact label in its own column; the selected agent summary and detail view show the full location. The header counts live agents by the states AM2 can verify and shows `unknown` separately. Keys:
+The dashboard starts scanning in the background, polls every five seconds without blocking keyboard input, and redraws when input or new data arrives. 
+
+Herdr pane process queries run in bounded parallel batches, while macOS groups Codex open-file queries into one `lsof` call. Use `am2 doctor` to measure both inventory sources on your machine.
+
+On terminals at least 100 columns wide, Enter opens details beside the agent list; on narrower terminals, details use the full width. 
+
+The Agents list groups by project and agent type, then sorts by session identity; state changes do not move a row. It shows a short session ID (or pane/PID fallback) and WHERE. WHERE names the Herdr pane and linked host app when available, or the linked terminal app for a standalone agent. An unlinked local process shows its TTY with `app unknown`. 
+
+On narrow terminals, WHERE uses a compact label in its own column; the selected agent summary and detail view show the full location. The header counts live agents by the states AM2 can verify and shows `unknown` separately. Keys:
 
 | Key | Action |
 | --- | --- |
@@ -80,9 +107,17 @@ cargo run -- list --json
 
 For a standalone agent in Terminal.app or iTerm2, `o` finds the session with the agent's exact terminal TTY and focuses it when there is one match. For Ghostty, press `L` and choose the correct terminal, then press Enter or `y` to save the link (`Esc` cancels). `L` lists sessions from all three supported apps and can also override an automatic match. The picker shows each provider, title, TTY or cwd, window, and app PID. Standalone links are keyed to the live agent process identity; a restarted agent needs a new link. macOS may request Automation permission for each terminal app. If a session closes or the TTY match is ambiguous, AM2 reports the problem instead of choosing another session.
 
-## Managed launch
+## Launch new Agent(s)
 
-Press `n` to open the launch form. Edit the project directory, use Tab to select agent and terminal, use ←/→ to change those choices, and press Enter. AM2 starts the chosen CLI in a new Herdr pane, Ghostty window, Terminal.app window, or iTerm2 window. Herdr is offered when AM2 is inside a Herdr pane or can identify a live Herdr pane to split beside. From a separate terminal window, select a Herdr agent first; if all observed Herdr agents share one workspace, AM2 can also use that workspace without a Herdr row selected. The launch form shows the anchor pane. AM2 splits it with the chosen cwd, then runs the launcher in the returned pane ID. The selected agent executable must already be on `PATH`, and the project directory must exist. AM2 records the launched process ID and the exact terminal target, links them when the live inventory sees the agent, and selects the new row. Press `o` to return to it. A launch failure or a process that never appears is reported in the status line.
+Press `n` to open the launch form. Edit the project directory, use Tab to select agent and terminal, use ←/→ to change those choices, and press Enter. 
+
+AM2 starts the chosen CLI in a new Herdr pane, Ghostty window, Terminal.app window, or iTerm2 window. Herdr is offered when AM2 is inside a Herdr pane or can identify a live Herdr pane to split beside. 
+
+From a separate terminal window, select a Herdr agent first; if all observed Herdr agents share one workspace, AM2 can also use that workspace without a Herdr row selected. 
+
+The launch form shows the anchor pane. AM2 splits it with the chosen cwd, then runs the launcher in the returned pane ID. The selected agent executable must already be on `PATH`, and the project directory must exist. 
+
+AM2 records the launched process ID and the exact terminal target, links them when the live inventory sees the agent, and selects the new row. Press `o` to return to it. A launch failure or a process that never appears is reported in the status line.
 
 The launch command starts an interactive agent through the user's noninteractive login shell without sending it a prompt. macOS may request Automation permission for a terminal app. Launch uses that app's scripting interface or Herdr's CLI; no agent plugins, hooks, or configuration changes are required.
 
@@ -105,7 +140,3 @@ Press `p` to see live agents grouped by Git repository root. A directory outside
 AM2 runs bounded, local, read-only Git commands (`rev-parse`, `branch`, `log`, `status`) in a background worker with optional Git locks disabled. It inspects up to 30 project roots, caps each Git command at three seconds and 1 MiB of output, and shows up to 60 changed paths per project while retaining the total count. It does **not** run tests or infer a pass from a clean working tree. Test evidence comes only from a recognizable result in current agent output and may become stale; a missing signal is shown as unknown. Project snapshots and Git output are not stored in SQLite.
 
 SQLite stores agent metadata, output fingerprints, and terminal links at `~/Library/Application Support/AM2/inbox.sqlite3`. The filename remains for compatibility with earlier builds; old Inbox rows are left intact but unused. Set `AM2_DATA_DIR` to use another directory. Pane output is never stored in SQLite.
-
-## Scope
-
-For a Herdr row, the displayed cwd comes from the agent foreground process, then Herdr's `foreground_cwd`, then the pane's launch cwd. For a standalone row, cwd comes from macOS `lsof`, with Claude's `agents --json` cwd preferred when available. The Project column is the basename of that cwd. Standalone discovery filters live CLI executables, service subcommands, and processes without a terminal TTY, then rechecks PID and process start time. It can miss renamed/custom wrappers. Claude's supported JSON inventory can enrich an exact live terminal PID with session ID and reported state; editor or detached Claude sessions without a TTY are excluded. Codex's session ID is shown only when `lsof` finds one unique open thread lock or rollout file under `CODEX_HOME`; that exact ID also enriches the corresponding Herdr row. Other process-only rows remain `unknown`. AM2 does not infer exact Codex, OpenCode, Pi, Gemini, or Cursor session IDs from cwd or timestamps. OpenCode, Gemini, and Cursor live discovery is covered by fixture tests; no running instance of those three was available here.
